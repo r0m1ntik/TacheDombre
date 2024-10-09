@@ -41,7 +41,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@floating-ui/dom": "1.6.11",
+    "@floating-ui/dom": "^1.6.11",
     "@supabase/supabase-js": "^2.45.4",
     "highlight.js": "11.10.0"
   }

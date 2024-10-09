@@ -1,13 +1,12 @@
 <script lang="ts">
     import { signUp } from '$lib/auth';
-    import { user } from '$lib/stores/userStore'; // Gestion de l'utilisateur
+    import { user } from '$lib/stores/userStore';
     import { fade } from 'svelte/transition';
 
     let emailSignUp = '';
     let passwordSignUp = '';
     let errorMessageSignUp = '';
-    let successMessage = ''; // Pour afficher le message de succès
-    export let closeModal; // Cette fonction sera passée depuis le parent pour fermer le modal
+    export let closeModal;
 
     const handleSignUp = async () => {
         const result = await signUp(emailSignUp, passwordSignUp);
@@ -16,13 +15,13 @@
         } else {
             // Auto-login après création de compte
             user.set(result.data.user);
-            successMessage = 'Compte créé avec succès ! Vous êtes maintenant connecté.';
-            errorMessageSignUp = ''; // Effacer les messages d'erreur
+            // Effacer les messages d'erreur
+            errorMessageSignUp = ''; 
 
-            // Fermeture automatique du modal après 2 secondes
+            // Fermeture du modal
             setTimeout(() => {
-                closeModal(); // Appel pour fermer le modal
-            }, 2000);
+                closeModal();
+            }, 1000);
         }
     };
 
@@ -57,14 +56,6 @@
             <aside class="alert variant-ghost" transition:fade={{ duration: 200 }}>
                 <div class="alert-message">
                     <p>{errorMessageSignUp}</p>
-                </div>
-            </aside>
-        {/if}
-
-        {#if successMessage}
-            <aside class="alert success-message" transition:fade={{ duration: 200 }}>
-                <div class="alert-message">
-                    <p>{successMessage}</p>
                 </div>
             </aside>
         {/if}
