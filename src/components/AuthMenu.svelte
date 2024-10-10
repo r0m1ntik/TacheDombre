@@ -70,7 +70,7 @@
                     {:else}
                         <!-- Si le nom n'existe pas, proposer de le changer -->
                         <input type="text" bind:value={newDisplayName} placeholder="Entrez votre nom" class="input input-primary w-full" />
-                        <button class="btn variant-soft w-full mt-2" on:click={updateDisplayName}>Modifier le nom</button>
+                        <button class="btn variant-soft w-full mt-2" on:click={updateDisplayName}>Modifier</button>
                     {/if}
                 </p>
             </div> 
@@ -84,12 +84,8 @@
         </div>
     </div>
 {:else}
-    <ul class="flex flex-col font-medium mt-4 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-transparent dark:bg-gray-800 md:dark:bg-transparent dark:border-gray-700">
-        <li>
-            <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" on:click={() => toggleModal(true)}>S'inscrire</button>
-        </li>
-        <li>
-            <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" on:click={() => toggleModal(false)}>Se connecter</button>
-        </li>
-    </ul>
+    <div class="flex items-center md:order-2 space-x-1 md:space-x-2 rtl:space-x-reverse">        
+        <button class="text-gray-800 dark:text-white hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-2 md:px-5 md:py-2.5 dark:hover:bg-gray-700 focus:outline-none dark:focus:ring-gray-800" on:click={() => toggleModal(false)}>Se connecter</button>
+        <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" on:click={() => toggleModal(true)}>S'inscrire</button>
+    </div>
 {/if}
