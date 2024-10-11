@@ -129,7 +129,7 @@
             <div class="pt-4">
                 <InputChip placeholder="Besoin d’un filtre ? C’est par ici." bind:input={inputChip} bind:value={selectedCategories} name="chips" />
                 <div class="pt-4">
-                    <div class="card max-w-sm max-h-48 overflow-y-auto" tabindex="-1">
+                    <div class="card max-h-48 overflow-y-auto" tabindex="-1">
                         <Autocomplete
                             bind:input={inputChip}
                             options={categoryOptions}
