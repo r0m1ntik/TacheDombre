@@ -28,7 +28,8 @@
 
         const { data: categoriesData, error: categoriesError } = await supabase
             .from('categories')
-            .select('*');
+            .select('*')
+            .order('name', { ascending: true });
 
             if (categoriesError) {
                 console.error('Erreur lors de la récupération des catégories', categoriesError);

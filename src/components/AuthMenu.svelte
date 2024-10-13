@@ -5,7 +5,6 @@
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
 
-    let newDisplayName = '';
     let currentRoute = '';
     export let currentUser = null;
 
@@ -25,27 +24,11 @@
         placement: 'bottom',
     };
 
-    // Fonction pour générer l'URL de l'avatar, en vérifiant que l'email est bien défini
     const avatarUrl = (email: string | undefined) => {
         if (!email || email.length === 0) {
             return ''; // Retourner une chaîne vide si l'e-mail n'est pas défini
         }
         return `https://ui-avatars.com/api/?name=${encodeURIComponent(email[0])}&background=random&color=fff&size=128`;
-    };
-
-    const updateDisplayName = async () => {
-        if (newDisplayName.trim()) {
-            const { error } = await supabase.auth.updateUser({ data: { displayName: newDisplayName } });
-            if (!error) {
-                currentUser.update(user => ({
-                    ...user,
-                    user_metadata: { ...user.user_metadata, displayName: newDisplayName },
-                }));
-                newDisplayName = '';
-            } else {
-                console.error('Erreur lors de la mise à jour du nom', error);
-            }
-        }
     };
 
     const redirectToRegister = () => {
@@ -78,22 +61,20 @@
     </div>
 
     <!-- Menu déroulant (popup) -->
-    <div class="card p-4 w-72 shadow-xl" data-popup="popupFeatured">
-        <div class="space-y-4">
-            <div>
-                <p class="font-bold">
-                    <span class="block text-sm">{$currentUser?.email}</span>
-                </p>
-                <p class="opacity-50">
-                    {#if $currentUser?.user_metadata?.displayName}
-                        <span class="block text-sm">{$currentUser.user_metadata.displayName}</span>
-                    {:else}
-                        <input type="text" bind:value={newDisplayName} placeholder="Modifier votre nom" class="input input-primary w-full" />
-                        <button class="btn variant-soft w-full mt-2" on:click={updateDisplayName}>Modifier</button>
-                    {/if}
+    <div class="card p-6 w-80 bg-white shadow-lg rounded-lg" data-popup="popupFeatured">
+        <div class="space-y-6">
+            <div class="text-center">
+                <p class="text-lg font-semibold text-gray-300">
+                    <span>{$currentUser?.email}</span>
                 </p>
             </div>
-            <button class="btn variant-soft w-full" on:click={handleSignOut}>Se déconnecter</button>
+    
+            <button
+                class="btn bg-gray-500 hover:bg-gray-600 text-white w-full rounded-lg p-2 font-medium focus:outline-none focus:ring-2 focus:ring-gray-500"
+                on:click={handleSignOut}
+            >
+                Se déconnecter
+            </button>
         </div>
     </div>
 {:else}

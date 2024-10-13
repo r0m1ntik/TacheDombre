@@ -1,6 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-	import { signIn } from '$lib/stores/userStore';
+    import { signIn } from '$lib/stores/userStore'; // Importer currentUser
+    import { onMount } from 'svelte';
     import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
     import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
@@ -8,6 +9,15 @@
     let passwordSignIn = '';
     let errorMessageSignIn = '';
     let showPassword = false;
+
+    export let currentUser = null;
+
+    // Vérifier si l'utilisateur est déjà connecté lors du montage du composant
+    onMount(() => {
+        if ($currentUser) {
+            goto('/dashboard'); // Rediriger vers le tableau de bord si l'utilisateur est connecté
+        }
+    });
 
     const handleSignIn = async () => {
         const result = await signIn(emailSignIn, passwordSignIn);
