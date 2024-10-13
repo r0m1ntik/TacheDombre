@@ -1,32 +1,75 @@
 import { writable } from 'svelte/store';
-import { supabase } from '$lib/auth';
+import { supabase } from '$lib/supabaseClient';
+import { goto } from '$app/navigation';
 
-// Store utilisateur
-export const user = writable(null);
+export const currentUser = writable(null); // Stockage de l'utilisateur actuel
 
-// Charger l'utilisateur à partir de la session actuelle
-export const loadUser = async () => {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-        console.error('Erreur lors de la récupération de la session', error.message);
-        return;
+// Fonction pour charger l'utilisateur connecté
+export async function loadUser() {
+    try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session) {
+            currentUser.set(null);
+            return null;
+        }
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+            currentUser.set(null);
+            return null;
+        }
+
+        currentUser.set(user);
+        return user;
+    } catch (error) {
+        console.error('Erreur lors de la récupération de l\'utilisateur', error);
+        currentUser.set(null);
+        return null;
     }
+}
 
-    // Si l'utilisateur est connecté, on met à jour le store
-    if (data.session) {
-        user.set(data.session.user);
-    } else {
-        user.set(null);
+// Fonction pour connecter l'utilisateur
+export async function signIn(email: string, password: string) {
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            console.error('Erreur lors de la connexion', error);
+            return { error };
+        }
+
+        currentUser.set(data.user);
+        return { data };
+    } catch (error) {
+        console.error('Erreur lors de la connexion', error);
+        return { error };
     }
-};
+}
+
+// Fonction pour créer un compte utilisateur
+export async function signUp(email: string, password: string) {
+    try {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+
+        if (error) {
+            return { error };
+        }
+
+        return { data };
+    } catch (error) {
+        return { error };
+    }
+}
 
 // Fonction pour déconnecter l'utilisateur
 export const signOutUser = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-        console.error('Erreur lors de la déconnexion', error.message);
+        console.error('Erreur lors de la déconnexion');
     } else {
-        // On vide le store utilisateur après déconnexion
-        user.set(null); 
+        currentUser.set(null);
+        goto('/');
     }
 };

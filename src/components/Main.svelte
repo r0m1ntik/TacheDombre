@@ -1,20 +1,15 @@
 <script lang="ts">
-    import Signup from './Signup.svelte';
-    import Login from './Login.svelte';
     import { onMount } from 'svelte';
     import { supabase } from '$lib/supabaseClient';
-    import { Accordion, AccordionItem, InputChip, Autocomplete, AppBar } from '@skeletonlabs/skeleton';
+    import { Accordion, AccordionItem, InputChip, Autocomplete } from '@skeletonlabs/skeleton';
     import type { AutocompleteOption } from '@skeletonlabs/skeleton';
-
-    export let showModal: boolean;
-    export let showSignUp: boolean;
-    export let closeModal: () => void;
-    export let handleKeyDown: (e: KeyboardEvent) => void;
 
     let tasks = [];
     let categories = [];
-    let inputChip = ''; // Valeur pour l'InputChip
-    let selectedCategories: string[] = []; // Liste des catégories sélectionnées
+    // Valeur pour l'InputChip
+    let inputChip = '';
+    // Liste des catégories sélectionnées
+    let selectedCategories: string[] = [];
     let categoryOptions: AutocompleteOption<string>[] = [];
 
     // Récupérer toutes les tâches et les catégories depuis Supabase
@@ -85,7 +80,7 @@
 <main class="flex-grow flex items-start justify-center p-8">
     <div class="flex-grow flex p-8 space-x-6">
         <!-- Liste des tâches sous forme d'Accordion -->
-        <div class="w-4/5 bg-white p-6 shadow-md rounded-lg dark:bg-gray-800">
+        <div class="w-4/5 bg-white p-6 shadow-md rounded-lg dark:bg-gray-900 border border-gray-200 dark:border-gray-600">
             <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">Liste des Tâches</h2>
             {#if filteredTasks.length > 0}
                 <Accordion>
@@ -124,7 +119,7 @@
         </div>
 
         <!-- Liste des catégories pour filtrer les tâches -->
-        <div class="w-1/5 bg-gray-100 p-6 shadow-md rounded-lg dark:bg-gray-800">
+        <div class="w-1/5 bg-gray-100 p-6 shadow-md rounded-lg dark:bg-gray-900 border border-gray-200 dark:border-gray-600">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Filtrer par Catégories</h2>
             <div class="pt-4">
                 <InputChip placeholder="Besoin d’un filtre ? C’est par ici." bind:input={inputChip} bind:value={selectedCategories} name="chips" />
@@ -141,25 +136,4 @@
             </div>
         </div>
     </div>
-
-    {#if showModal}
-        <div
-            class="fixed inset-0 bg-black bg-opacity-50 z-40"
-            role="button"
-            tabindex="0"
-            aria-label="Fermer le modal"
-            on:click={closeModal}
-            on:keydown={handleKeyDown}>
-        </div>
-
-        <div class="fixed z-50 max-w-lg p-6 bg-white dark:bg-gray-800 shadow-xl rounded-lg">
-            <div class="mt-4">
-                {#if showSignUp}
-                    <Signup {closeModal} />
-                {:else}
-                    <Login {closeModal} />
-                {/if}
-            </div>
-        </div>
-    {/if}
 </main>

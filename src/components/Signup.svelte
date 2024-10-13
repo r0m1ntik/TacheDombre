@@ -1,27 +1,36 @@
 <script lang="ts">
-    import { signUp } from '$lib/auth';
-    import { user } from '$lib/stores/userStore';
-    import { fade } from 'svelte/transition';
+    import { goto } from '$app/navigation';
+	import { signIn, signUp } from '$lib/stores/userStore';
+    import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+    import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+
 
     let emailSignUp = '';
     let passwordSignUp = '';
     let errorMessageSignUp = '';
-    export let closeModal;
+    let successMessageSignUp = '';
+    // Variable pour suivre l'état de la case à cocher
+    let autoLogin = false;
+    // Variable pour afficher ou masquer le mot de passe
+    let showPassword = false;
 
     const handleSignUp = async () => {
         const result = await signUp(emailSignUp, passwordSignUp);
-        if (result.error) {
-            errorMessageSignUp = translateError(result.error.message);
-        } else {
-            // Auto-login après création de compte
-            user.set(result.data.user);
-            // Effacer les messages d'erreur
-            errorMessageSignUp = ''; 
 
-            // Fermeture du modal
-            setTimeout(() => {
-                closeModal();
-            }, 1000);
+        if (result?.error) {
+            errorMessageSignUp = translateError(result.error.message);
+            successMessageSignUp = '';
+        } else {
+            errorMessageSignUp = '';
+            successMessageSignUp = 'Compte créé avec succès !';
+
+            // Si la case "Connexion automatique" est cochée, se connecter automatiquement
+            if (autoLogin) {
+                const loginResult = await signIn(emailSignUp, passwordSignUp);
+                if (!loginResult?.error) {
+                    goto('/dashboard');
+                }
+            }
         }
     };
 
@@ -39,25 +48,69 @@
                 return 'Une erreur est survenue. Veuillez réessayer.';
         }
     };
+
+    const togglePasswordVisibility = () => {
+        showPassword = !showPassword;
+    };
 </script>
 
-<section class="mb-6">
-    <h2 class="text-2xl mb-4">Inscription</h2>
-    <form on:submit|preventDefault={handleSignUp} class="flex flex-col gap-4">
-        <label for="email">Email :</label>
-        <input id="email" type="email" bind:value={emailSignUp} class="input input-primary" required />
+<main class="flex-grow flex items-center justify-center p-8">
+    <section class="container max-w-md mx-auto p-6 shadow-lg rounded-lg">
+        <h2 class="text-2xl font-semibold mb-6 text-center">Créer un compte</h2>
+        <form on:submit|preventDefault={handleSignUp} class="flex flex-col gap-4">
+            <label for="email" class="font-semibold">Email :</label>
+            <input id="email" type="email" bind:value={emailSignUp} class="input input-primary" required />
 
-        <label for="password">Mot de passe :</label>
-        <input id="password" type="password" bind:value={passwordSignUp} class="input input-primary" required />
+            <label for="password" class="font-semibold">Mot de passe :</label>
 
-        <button type="submit" class="btn variant-filled-surface">S'inscrire</button>
-
-        {#if errorMessageSignUp}
-            <aside class="alert variant-ghost" transition:fade={{ duration: 200 }}>
-                <div class="alert-message">
-                    <p>{errorMessageSignUp}</p>
+            <!-- Mot de passe en mode masqué -->
+            {#if !showPassword}
+                <div class="relative">
+                    <input id="password" type="password" bind:value={passwordSignUp} class="input input-primary w-full pr-10" required />
+                    <button type="button" on:click={togglePasswordVisibility} class="absolute right-2 top-2 text-sm text-gray-400">
+                        <FontAwesomeIcon icon={faEyeSlash} class="w-5 h-6" />
+                    </button>
                 </div>
-            </aside>
-        {/if}
-    </form>
-</section>
+            {/if}
+
+            <!-- Mot de passe en mode visible -->
+            {#if showPassword}
+                <div class="relative">
+                    <input id="password" type="text" bind:value={passwordSignUp} class="input input-primary w-full pr-10" required />
+                    <button type="button" on:click={togglePasswordVisibility} class="absolute right-2 top-2 text-sm text-gray-400">
+                        <FontAwesomeIcon icon={faEye} class="w-5 h-6" />
+                    </button>
+                </div>
+            {/if}
+
+            <div class="flex items-center">
+                <input type="checkbox" id="autoLogin" bind:checked={autoLogin} class="mr-2">
+                <label for="autoLogin" class="text-sm text-gray-400">Se connecter automatiquement après l'inscription</label>
+            </div>
+
+            <button type="submit" class="btn variant-filled-surface mt-4">Créer un compte</button>
+
+            {#if errorMessageSignUp}
+                <aside class="alert variant-ghost mt-4">
+                    <div class="alert-message">
+                        <p>{errorMessageSignUp}</p>
+                    </div>
+                </aside>
+            {/if}
+
+            {#if successMessageSignUp && !autoLogin}
+                <aside class="alert variant-success mt-4">
+                    <div class="alert-message">
+                        <p>{successMessageSignUp} Vous pouvez maintenant vous connecter.</p>
+                    </div>
+                </aside>
+            {/if}
+        </form>
+
+        <!-- Ligne avec lien vers la connexion -->
+        <p class="mt-6 text-center text-sm text-gray-500">
+            Vous avez déjà un compte ? 
+            <a href="/login" class="text-blue-500 hover:text-blue-700 font-semibold">Connectez-vous ici</a>.
+        </p>
+    </section>
+</main>
