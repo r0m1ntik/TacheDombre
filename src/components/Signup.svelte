@@ -1,20 +1,24 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-	import { signIn, signUp } from '$lib/stores/userStore';
+    import { signIn, signUp } from '$lib/stores/userStore';
     import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
     import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
-
     let emailSignUp = '';
     let passwordSignUp = '';
+    let passwordConfirmationSignUp = '';  // Nouvelle variable pour la confirmation du mot de passe
     let errorMessageSignUp = '';
     let successMessageSignUp = '';
-    // Variable pour suivre l'état de la case à cocher
     let autoLogin = false;
-    // Variable pour afficher ou masquer le mot de passe
     let showPassword = false;
 
     const handleSignUp = async () => {
+        // Vérifier que les mots de passe correspondent
+        if (passwordSignUp !== passwordConfirmationSignUp) {
+            errorMessageSignUp = 'Les mots de passe ne correspondent pas.';
+            return;
+        }
+
         const result = await signUp(emailSignUp, passwordSignUp);
 
         if (result?.error) {
@@ -24,7 +28,6 @@
             errorMessageSignUp = '';
             successMessageSignUp = 'Compte créé avec succès !';
 
-            // Si la case "Connexion automatique" est cochée, se connecter automatiquement
             if (autoLogin) {
                 const loginResult = await signIn(emailSignUp, passwordSignUp);
                 if (!loginResult?.error) {
@@ -61,27 +64,35 @@
             <label for="email" class="font-semibold">Email :</label>
             <input id="email" type="email" bind:value={emailSignUp} class="input input-primary" required />
 
+            <!-- Mot de passe -->
             <label for="password" class="font-semibold">Mot de passe :</label>
-
-            <!-- Mot de passe en mode masqué -->
-            {#if !showPassword}
-                <div class="relative">
+            <div class="relative">
+                {#if !showPassword}
+                    <!-- Mot de passe masqué -->
                     <input id="password" type="password" bind:value={passwordSignUp} class="input input-primary w-full pr-10" required />
-                    <button type="button" on:click={togglePasswordVisibility} class="absolute right-2 top-2 text-sm text-gray-400">
-                        <FontAwesomeIcon icon={faEyeSlash} class="w-5 h-6" />
-                    </button>
-                </div>
-            {/if}
-
-            <!-- Mot de passe en mode visible -->
-            {#if showPassword}
-                <div class="relative">
+                {:else}
+                    <!-- Mot de passe visible -->
                     <input id="password" type="text" bind:value={passwordSignUp} class="input input-primary w-full pr-10" required />
-                    <button type="button" on:click={togglePasswordVisibility} class="absolute right-2 top-2 text-sm text-gray-400">
-                        <FontAwesomeIcon icon={faEye} class="w-5 h-6" />
-                    </button>
-                </div>
-            {/if}
+                {/if}
+                <button type="button" on:click={togglePasswordVisibility} class="absolute right-2 top-2 text-sm text-gray-400">
+                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} class="w-5 h-6" />
+                </button>
+            </div>
+
+            <!-- Confirmation du mot de passe -->
+            <label for="password-confirmation" class="font-semibold">Confirmer le mot de passe :</label>
+            <div class="relative">
+                {#if !showPassword}
+                    <!-- Mot de passe masqué -->
+                    <input id="password-confirmation" type="password" bind:value={passwordConfirmationSignUp} class="input input-primary w-full pr-10" required />
+                {:else}
+                    <!-- Mot de passe visible -->
+                    <input id="password-confirmation" type="text" bind:value={passwordConfirmationSignUp} class="input input-primary w-full pr-10" required />
+                {/if}
+                <button type="button" on:click={togglePasswordVisibility} class="absolute right-2 top-2 text-sm text-gray-400">
+                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} class="w-5 h-6" />
+                </button>
+            </div>
 
             <div class="flex items-center">
                 <input type="checkbox" id="autoLogin" bind:checked={autoLogin} class="mr-2">
