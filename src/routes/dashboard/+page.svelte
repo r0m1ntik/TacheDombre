@@ -97,6 +97,93 @@
             console.error('Aucune donnée retournée après l’ajout de la catégorie');
         }
     };
+    
+    // Fonction pour ajouter ou modifier une tâche
+    const saveTask = async () => {
+        const userData = await loadUser();
+        if (!userData) {
+            console.error('Utilisateur non connecté');
+            return;
+        }
+
+        if (newTask.id) {
+            // Modifier la tâche existante
+            const { data, error } = await supabase
+                .from('tasks')
+                .update({
+                    title: newTask.title,
+                    description: newTask.description,
+                    category_id: newTask.category_id,
+                    priority: newTask.priority,
+                    status: newTask.status,
+                    due_date: newTask.due_date,
+                    user_id: userData.id
+                })
+                .eq('id', newTask.id)
+                .select('*'); // Pour récupérer les données après la mise à jour
+
+            if (error) {
+                console.error('Erreur lors de la mise à jour de la tâche', error);
+            } else if (data && data.length > 0) {
+                // Mettre à jour la tâche dans la liste locale des tâches
+                tasks = tasks.map(t => (t.id === newTask.id ? data[0] : t));
+                newTask = { title: '', description: '', category_id: null, priority: '', status: 'À faire', due_date: '' };
+                showCreateTaskModal.set(false);
+            } else {
+                console.error('Aucune donnée retournée après la mise à jour de la tâche');
+            }
+        } else {
+            // Ajouter une nouvelle tâche
+            const { data, error } = await supabase
+                .from('tasks')
+                .insert({
+                    title: newTask.title,
+                    description: newTask.description,
+                    category_id: newTask.category_id,
+                    priority: newTask.priority,
+                    status: newTask.status,
+                    due_date: newTask.due_date,
+                    user_id: userData.id
+                })
+                .select('*'); // Pour récupérer les données après l'insertion
+
+            if (error) {
+                console.error('Erreur lors de l’ajout de la tâche', error);
+            } else if (data && data.length > 0) {
+                // Ajouter la nouvelle tâche à la liste réactive des tâches
+                tasks = [...tasks, data[0]];
+                newTask = { title: '', description: '', category_id: null, priority: '', status: 'À faire', due_date: '' };
+                showCreateTaskModal.set(false);
+            } else {
+                console.error('Aucune donnée retournée après l’ajout de la tâche');
+            }
+        }
+    };
+
+    // Fonction pour supprimer une tâche avec confirmation
+    const deleteTask = async (taskId) => {
+        const confirmation = confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?');
+        if (!confirmation) return;
+
+        const { error } = await supabase
+            .from('tasks')
+            .delete()
+            .eq('id', taskId);
+
+        if (error) {
+            console.error('Erreur lors de la suppression de la tâche', error);
+        } else {
+            // Supprimer la tâche de la liste locale des tâches
+            tasks = tasks.filter(task => task.id !== taskId);
+        }
+    };
+
+    // Fonction pour remplir le formulaire avec une tâche existante (pour modification)
+    const editTask = (task) => {
+        newTask = { ...task };
+        showCreateTaskModal.set(true);
+    };
+
 </script>
 
 <!-- Structure de la page Dashboard -->
@@ -126,6 +213,16 @@
                         <p class="text-xs text-gray-400 dark:text-gray-500">
                             Statut : {task.status} | Créée le {new Date(task.created_at).toLocaleDateString()} | Date limite : {new Date(task.due_date).toLocaleDateString()}
                         </p>
+                        <div class="flex justify-end space-x-2">
+                            <!-- Bouton de modification -->
+                            <button class="btn bg-yellow-500 text-white" on:click={() => editTask(task)}>
+                                Modifier
+                            </button>
+                            <!-- Bouton de suppression -->
+                            <button class="btn bg-red-500 text-white" on:click={() => deleteTask(task.id)}>
+                                Supprimer
+                            </button>
+                        </div>
                     </li>
                 {/each}
             </ul>
@@ -137,11 +234,11 @@
     <!-- Footer -->
     <Footer />
 
-    <!-- Modal pour créer une nouvelle tâche -->
+    <!-- Modal pour créer ou modifier une tâche -->
     {#if $showCreateTaskModal}
         <div class="modal">
             <div class="modal-content border border-gray-200 dark:border-gray-600">
-                <h2>Nouvelle tâche</h2>
+                <h2>{newTask.id ? 'Modifier la tâche' : 'Nouvelle tâche'}</h2>
                 <input type="text" placeholder="Titre de la tâche" bind:value={newTask.title} class="input" />
                 <textarea placeholder="Description" bind:value={newTask.description} class="input"></textarea>
 
@@ -154,7 +251,9 @@
                 </select>
 
                 <!-- Option pour ajouter une nouvelle catégorie -->
-                <button class="btn bg-gray-600 text-white mb-4" on:click={() => showCreateCategoryModal.set(true)}>Nouvelle catégorie</button>
+                <button class="btn bg-gray-600 text-white mb-4" on:click={() => showCreateCategoryModal.set(true)}>
+                    Nouvelle catégorie
+                </button>
 
                 <!-- Sélection de la priorité -->
                 <select bind:value={newTask.priority} class="input">
@@ -174,7 +273,9 @@
                 <!-- Date de fin -->
                 <input type="date" bind:value={newTask.due_date} class="input" />
 
-                <button class="btn bg-blue-600 text-white" on:click={addTask}>Ajouter la tâche</button>
+                <button class="btn bg-blue-600 text-white" on:click={saveTask}>
+                    {newTask.id ? 'Modifier la tâche' : 'Ajouter la tâche'}
+                </button>
                 <button class="btn bg-gray-600 text-white" on:click={() => showCreateTaskModal.set(false)}>Annuler</button>
             </div>
         </div>
