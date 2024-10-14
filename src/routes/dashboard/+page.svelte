@@ -3,9 +3,9 @@
     import Footer from '../../components/Footer.svelte';
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { supabase } from '$lib/supabaseClient';
-	import { currentUser, loadUser } from '$lib/stores/userStore'; 
     import { writable } from 'svelte/store';
+    import { currentUser, loadUser } from '$lib/stores/userStore';
+	import { supabase } from '$lib/supabaseClient';
 
     let tasks = [];
     let categories = [];
@@ -18,16 +18,15 @@
         due_date: ''
     };
     let newCategoryName = '';
-    let showCreateTaskModal = writable(false); // Pour afficher ou cacher le formulaire de création de tâche
-    let showCreateCategoryModal = writable(false); // Pour afficher ou cacher le formulaire de création de catégorie
+    let showCreateTaskModal = writable(false);
+    let showCreateCategoryModal = writable(false);
 
-    // Récupérer les tâches et catégories de l'utilisateur connecté
+    // Charger les tâches et les catégories de l'utilisateur connecté
     onMount(async () => {
         const user = await loadUser();
         if (!user) {
             goto('/');
         } else {
-            // Récupérer les tâches
             const { data: tasksData, error: tasksError } = await supabase
                 .from('tasks')
                 .select('*')
@@ -35,7 +34,6 @@
                 .order('created_at', { ascending: false });
             if (!tasksError) tasks = tasksData || [];
 
-            // Récupérer les catégories
             const { data: categoriesData, error: categoriesError } = await supabase
                 .from('categories')
                 .select('*')
@@ -44,146 +42,122 @@
         }
     });
 
-    // Ajouter une nouvelle tâche
     const addTask = async () => {
-        const userData = await loadUser();
-        if (!userData) {
-            console.error('Utilisateur non connecté');
+        const user = await loadUser();
+        if (!user || !user.id) {
+            console.error('Utilisateur non connecté ou ID utilisateur manquant');
             return;
         }
 
-        const { data, error } = await supabase
-            .from('tasks')
-            .insert({
+        try {
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: newTask.title,
+                    description: newTask.description,
+                    category_id: newTask.category_id,
+                    priority: newTask.priority,
+                    status: newTask.status,
+                    due_date: newTask.due_date,
+                    user_id: user.id
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Erreur lors de la création de la tâche', errorData.error);
+                return;
+            }
+
+            const { task } = await response.json();
+            tasks = [...tasks, task];
+            newTask = { title: '', description: '', category_id: null, priority: '', status: 'À faire', due_date: '' };
+            showCreateTaskModal.set(false);
+
+        } catch (error) {
+            console.error('Erreur lors de la requête:', error);
+        }
+    };
+
+    
+    // Fonction pour supprimer une tâche
+    const deleteTask = async (taskId) => {
+        const confirmation = confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?');
+        if (!confirmation) return;
+
+        const response = await fetch('/api/tasks', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: taskId })
+        });
+
+        if (response.ok) {
+            tasks = tasks.filter(task => task.id !== taskId);
+        } else {
+            console.error('Erreur lors de la suppression de la tâche');
+        }
+    };
+
+    // Fonction pour modifier une tâche
+    const updateTask = async (taskId) => {
+        const response = await fetch('/api/tasks', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: taskId,
                 title: newTask.title,
                 description: newTask.description,
                 category_id: newTask.category_id,
                 priority: newTask.priority,
                 status: newTask.status,
-                due_date: newTask.due_date,
-                user_id: userData.id
+                due_date: newTask.due_date
             })
-            .select('*'); // Pour récupérer les données après l'insertion
+        });
 
-        if (error) {
-            console.error('Erreur lors de l’ajout de la tâche', error);
-        } else if (data && data.length > 0) {
-            // Ajouter la nouvelle tâche à la liste réactive des tâches
-            tasks = [...tasks, data[0]];
+        if (response.ok) {
+            const { task } = await response.json();
+            tasks = tasks.map(t => (t.id === taskId ? task : t));
             newTask = { title: '', description: '', category_id: null, priority: '', status: 'À faire', due_date: '' };
-            // Fermer le modal après l'ajout
             showCreateTaskModal.set(false);
         } else {
-            console.error('Aucune donnée retournée après l’ajout de la tâche');
+            console.error('Erreur lors de la modification de la tâche');
         }
     };
 
-    // Ajouter une nouvelle catégorie
-    const addCategory = async () => {
-        const { data, error } = await supabase
-            .from('categories')
-            .insert({ name: newCategoryName })
-            .select()
-            .order('name', { ascending: true });
-
-        if (error) {
-            console.error('Erreur lors de l’ajout de la catégorie', error);
-        } else if (data && data.length > 0) {
-            // Vérifier si 'data' est défini et contient au moins un élément
-            categories = [...categories, data[0]];
-            newCategoryName = '';
-            showCreateCategoryModal.set(false);
-        } else {
-            console.error('Aucune donnée retournée après l’ajout de la catégorie');
-        }
-    };
-    
-    // Fonction pour ajouter ou modifier une tâche
-    const saveTask = async () => {
-        const userData = await loadUser();
-        if (!userData) {
-            console.error('Utilisateur non connecté');
-            return;
-        }
-
-        if (newTask.id) {
-            // Modifier la tâche existante
-            const { data, error } = await supabase
-                .from('tasks')
-                .update({
-                    title: newTask.title,
-                    description: newTask.description,
-                    category_id: newTask.category_id,
-                    priority: newTask.priority,
-                    status: newTask.status,
-                    due_date: newTask.due_date,
-                    user_id: userData.id
-                })
-                .eq('id', newTask.id)
-                .select('*'); // Pour récupérer les données après la mise à jour
-
-            if (error) {
-                console.error('Erreur lors de la mise à jour de la tâche', error);
-            } else if (data && data.length > 0) {
-                // Mettre à jour la tâche dans la liste locale des tâches
-                tasks = tasks.map(t => (t.id === newTask.id ? data[0] : t));
-                newTask = { title: '', description: '', category_id: null, priority: '', status: 'À faire', due_date: '' };
-                showCreateTaskModal.set(false);
-            } else {
-                console.error('Aucune donnée retournée après la mise à jour de la tâche');
-            }
-        } else {
-            // Ajouter une nouvelle tâche
-            const { data, error } = await supabase
-                .from('tasks')
-                .insert({
-                    title: newTask.title,
-                    description: newTask.description,
-                    category_id: newTask.category_id,
-                    priority: newTask.priority,
-                    status: newTask.status,
-                    due_date: newTask.due_date,
-                    user_id: userData.id
-                })
-                .select('*'); // Pour récupérer les données après l'insertion
-
-            if (error) {
-                console.error('Erreur lors de l’ajout de la tâche', error);
-            } else if (data && data.length > 0) {
-                // Ajouter la nouvelle tâche à la liste réactive des tâches
-                tasks = [...tasks, data[0]];
-                newTask = { title: '', description: '', category_id: null, priority: '', status: 'À faire', due_date: '' };
-                showCreateTaskModal.set(false);
-            } else {
-                console.error('Aucune donnée retournée après l’ajout de la tâche');
-            }
-        }
-    };
-
-    // Fonction pour supprimer une tâche avec confirmation
-    const deleteTask = async (taskId) => {
-        const confirmation = confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?');
-        if (!confirmation) return;
-
-        const { error } = await supabase
-            .from('tasks')
-            .delete()
-            .eq('id', taskId);
-
-        if (error) {
-            console.error('Erreur lors de la suppression de la tâche', error);
-        } else {
-            // Supprimer la tâche de la liste locale des tâches
-            tasks = tasks.filter(task => task.id !== taskId);
-        }
-    };
-
-    // Fonction pour remplir le formulaire avec une tâche existante (pour modification)
+    // Fonction pour remplir le formulaire lors de la modification
     const editTask = (task) => {
         newTask = { ...task };
         showCreateTaskModal.set(true);
     };
 
+    const addCategory = async () => {
+        if (!newCategoryName.trim()) {
+            console.error('Le nom de la catégorie ne peut pas être vide.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newCategoryName })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Erreur lors de la création de la catégorie', errorData.error);
+                return;
+            }
+
+            const { category } = await response.json();
+            // Ajout de la nouvelle catégorie à la liste des catégories
+            categories = [...categories, category]; 
+            newCategoryName = '';
+        } catch (error) {
+            console.error('Erreur lors de la requête:', error);
+        }
+    };
 </script>
 
 <!-- Structure de la page Dashboard -->
@@ -250,9 +224,15 @@
                     {/each}
                 </select>
 
-                <!-- Option pour ajouter une nouvelle catégorie -->
-                <button class="btn bg-gray-600 text-white mb-4" on:click={() => showCreateCategoryModal.set(true)}>
-                    Nouvelle catégorie
+                <!-- Champ pour créer une nouvelle catégorie -->
+                <input 
+                    type="text" 
+                    placeholder="Nouvelle catégorie" 
+                    bind:value={newCategoryName} 
+                    class="input"
+                />
+                <button class="btn bg-gray-600 text-white mb-4" on:click={addCategory}>
+                    Ajouter une nouvelle catégorie
                 </button>
 
                 <!-- Sélection de la priorité -->
@@ -273,22 +253,10 @@
                 <!-- Date de fin -->
                 <input type="date" bind:value={newTask.due_date} class="input" />
 
-                <button class="btn bg-blue-600 text-white" on:click={saveTask}>
+                <button class="btn bg-blue-600 text-white" on:click={() => newTask.id ? updateTask(newTask.id) : addTask()}>
                     {newTask.id ? 'Modifier la tâche' : 'Ajouter la tâche'}
                 </button>
                 <button class="btn bg-gray-600 text-white" on:click={() => showCreateTaskModal.set(false)}>Annuler</button>
-            </div>
-        </div>
-    {/if}
-
-    <!-- Modal pour créer une nouvelle catégorie -->
-    {#if $showCreateCategoryModal}
-        <div class="modal">
-            <div class="modal-content">
-                <h2>Nouvelle catégorie</h2>
-                <input type="text" placeholder="Nom de la catégorie" bind:value={newCategoryName} class="input" />
-                <button class="btn bg-blue-600 text-white" on:click={addCategory}>Ajouter la catégorie</button>
-                <button class="btn bg-gray-600 text-white" on:click={() => showCreateCategoryModal.set(false)}>Annuler</button>
             </div>
         </div>
     {/if}
